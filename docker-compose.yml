@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8644:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  api:
+    build: ./api-server
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    expose:
+      - "3000"

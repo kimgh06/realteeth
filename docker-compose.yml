@@ -12,5 +12,5 @@ services:
     env_file:
       - .env.production
     restart: unless-stopped
-    expose:
-      - "3000"
+    ports:
+      - "8643:3000"

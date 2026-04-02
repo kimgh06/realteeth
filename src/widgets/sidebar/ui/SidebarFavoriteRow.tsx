@@ -1,5 +1,6 @@
 import { useWeatherSummary } from "@/entities/weather";
 import { WeatherIcon } from "@/entities/weather/ui/WeatherIcon";
+import { useTempUnit } from "@/shared/lib/TempUnitContext";
 import type { Favorite } from "@/entities/location";
 
 interface Props {
@@ -9,11 +10,8 @@ interface Props {
 }
 
 export function SidebarFavoriteRow({ favorite, isActive, onSelect }: Props) {
-  const { data: weather } = useWeatherSummary(
-    favorite.lat,
-    favorite.lon,
-    favorite.name,
-  );
+  const { data: weather } = useWeatherSummary(favorite.lat, favorite.lon, favorite.name);
+  const { convert, unit } = useTempUnit();
 
   return (
     <button
@@ -48,7 +46,7 @@ export function SidebarFavoriteRow({ favorite, isActive, onSelect }: Props) {
 
       {/* Temperature */}
       <span className="shrink-0 text-sm font-medium tabular-nums text-white/80">
-        {weather ? `${weather.temp}°` : "—"}
+        {weather ? `${convert(weather.temp)}°${unit}` : "—"}
       </span>
     </button>
   );

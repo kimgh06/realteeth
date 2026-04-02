@@ -1,14 +1,11 @@
+import { useTempUnit } from "@/shared/lib/TempUnitContext";
+
 interface Props {
   temp: number;
   className?: string;
-  unit?: string;
 }
 
-export function TemperatureDisplay({ temp, className = "", unit = "°" }: Props) {
-  return (
-    <span className={className}>
-      {temp}
-      {unit}
-    </span>
-  );
+export function TemperatureDisplay({ temp, className = "" }: Props) {
+  const { convert, unit } = useTempUnit();
+  return <span className={className}>{convert(temp)}°{unit}</span>;
 }

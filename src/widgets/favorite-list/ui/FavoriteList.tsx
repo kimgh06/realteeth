@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { X, Pencil, Check, Trash2, LayoutGrid, List } from "lucide-react";
 import { useWeatherSummary } from "@/entities/weather";
 import { WeatherIcon } from "@/entities/weather/ui/WeatherIcon";
+import { useTempUnit } from "@/shared/lib/TempUnitContext";
 import { getWeatherCardGradient } from "@/shared/lib/weatherBackground";
 import { useSwipeToDelete } from "@/shared/lib/useSwipeToDelete";
 import { buildDetailUrl } from "@/shared/lib/routes";
@@ -43,6 +44,7 @@ function GridCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { data: weather } = useWeatherSummary(favorite.lat, favorite.lon, favorite.name);
+  const { convert, unit } = useTempUnit();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(favorite.alias);
 
@@ -93,7 +95,7 @@ function GridCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
           style={{ background: cardBg }}
           role="button"
           tabIndex={0}
-          aria-label={`${favorite.alias}${weather ? `. ${weather.temp}도` : ""}`}
+          aria-label={`${favorite.alias}${weather ? `. ${convert(weather.temp)}도` : ""}`}
           {...longPressHandlers}
         >
           <div className="bg-gradient-to-b from-black/10 to-black/30 p-3.5 sm:p-4">
@@ -137,8 +139,8 @@ function GridCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
             {weather ? (
               <div className="flex items-end justify-between">
                 <div>
-                  <span className="text-2xl font-light text-white">{weather.temp}°</span>
-                  <div className="mt-0.5 text-xs text-white/70">{weather.tempMin}° / {weather.tempMax}°</div>
+                  <span className="text-2xl font-light text-white">{convert(weather.temp)}°{unit}</span>
+                  <div className="mt-0.5 text-xs text-white/70">{convert(weather.tempMin)}°{unit} / {convert(weather.tempMax)}°{unit}</div>
                 </div>
                 <WeatherIcon icon={weather.icon} size="sm" />
               </div>
@@ -158,6 +160,7 @@ function ListCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { data: weather } = useWeatherSummary(favorite.lat, favorite.lon, favorite.name);
+  const { convert, unit } = useTempUnit();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(favorite.alias);
 
@@ -204,7 +207,7 @@ function ListCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
           style={{ background: `${cardBg}` }}
           role="button"
           tabIndex={0}
-          aria-label={`${favorite.alias}${weather ? `. ${weather.temp}도, ${weather.description}` : ""}`}
+          aria-label={`${favorite.alias}${weather ? `. ${convert(weather.temp)}도, ${weather.description}` : ""}`}
         >
           {/* Dark overlay */}
           <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-r from-black/20 to-black/30" />
@@ -257,8 +260,8 @@ function ListCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
           <div className="relative z-10 shrink-0 text-right">
             {weather ? (
               <>
-                <span className="text-xl font-light text-white">{weather.temp}°</span>
-                <div className="text-[11px] text-white/50">{weather.tempMin}° / {weather.tempMax}°</div>
+                <span className="text-xl font-light text-white">{convert(weather.temp)}°{unit}</span>
+                <div className="text-[11px] text-white/50">{convert(weather.tempMin)}°{unit} / {convert(weather.tempMax)}°{unit}</div>
               </>
             ) : (
               <div className="h-8 w-12 animate-pulse rounded bg-white/10" />

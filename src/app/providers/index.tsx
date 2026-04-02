@@ -5,6 +5,7 @@ import { ToastProvider } from "./ToastProvider";
 import { SidebarProvider } from "./SidebarProvider";
 import { SelectedLocationProvider } from "./SelectedLocationProvider";
 import { FavoritesProvider } from "@/features/manage-favorites/model/useFavorites";
+import { TempUnitProvider } from "@/shared/lib/TempUnitContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +24,9 @@ export function Providers({ children }: { children: ReactNode }) {
         <ToastProvider>
           <SidebarProvider>
             <SelectedLocationProvider>
-              <FavoritesProvider>{children}</FavoritesProvider>
+              <FavoritesProvider>
+            <TempUnitProvider>{children}</TempUnitProvider>
+          </FavoritesProvider>
             </SelectedLocationProvider>
           </SidebarProvider>
         </ToastProvider>

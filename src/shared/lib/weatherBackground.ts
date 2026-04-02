@@ -11,11 +11,11 @@ const gradients: Record<string, GradientSet> = {
     n: "linear-gradient(180deg, #0d1b2a 0%, #1a237e 50%, #4a148c 100%)",
   },
   "02": {
-    d: "linear-gradient(180deg, #81D4FA 0%, #4FC3F7 50%, #0288D1 100%)",
+    d: "linear-gradient(180deg, #4FC3F7 0%, #0288D1 50%, #01579B 100%)",
     n: "linear-gradient(180deg, #1a237e 0%, #263238 60%, #37474F 100%)",
   },
   "03": {
-    d: "linear-gradient(180deg, #B0BEC5 0%, #90A4AE 50%, #78909C 100%)",
+    d: "linear-gradient(180deg, #78909C 0%, #607D8B 50%, #546E7A 100%)",
     n: "linear-gradient(180deg, #263238 0%, #37474F 60%, #455A64 100%)",
   },
   "04": {
@@ -35,11 +35,11 @@ const gradients: Record<string, GradientSet> = {
     n: "linear-gradient(180deg, #0d1b2a 0%, #1a1a2e 60%, #000000 100%)",
   },
   "13": {
-    d: "linear-gradient(180deg, #E3F2FD 0%, #BBDEFB 50%, #90CAF9 100%)",
+    d: "linear-gradient(180deg, #90CAF9 0%, #64B5F6 50%, #42A5F5 100%)",
     n: "linear-gradient(180deg, #1a237e 0%, #283593 60%, #3949AB 100%)",
   },
   "50": {
-    d: "linear-gradient(180deg, #CFD8DC 0%, #B0BEC5 50%, #90A4AE 100%)",
+    d: "linear-gradient(180deg, #90A4AE 0%, #78909C 50%, #607D8B 100%)",
     n: "linear-gradient(180deg, #37474F 0%, #455A64 60%, #546E7A 100%)",
   },
 };

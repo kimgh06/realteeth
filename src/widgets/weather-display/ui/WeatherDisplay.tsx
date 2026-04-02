@@ -56,7 +56,10 @@ export function WeatherDisplay({ data, isLoading, error, locationName, onRetry, 
     return <ErrorCard onRetry={onRetry} />;
   }
 
-  if (!data) return null;
+  if (!data) {
+    if (locationName) return <ErrorCard />;
+    return null;
+  }
 
   const { toggle: toggleUnit, convert, unit } = useTempUnit();
   const { current, hourly, daily, timezoneOffset } = data;

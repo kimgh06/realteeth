@@ -29,11 +29,15 @@ export function SearchBar({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const isComposing = useRef(false);
   const [localQuery, setLocalQuery] = useState<string>(query);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
 
+  // Only sync from parent when not in the middle of IME composition
   useEffect(() => {
-    setLocalQuery(query);
+    if (!isComposing.current) {
+      setLocalQuery(query);
+    }
   }, [query]);
 
   useEffect(() => {
@@ -133,7 +137,9 @@ export function SearchBar({
             type="text"
             value={localQuery}
             onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onCompositionStart={() => { isComposing.current = true; }}
+            onCompositionEnd={() => { isComposing.current = false; }}
+onKeyDown={handleKeyDown}
             placeholder="도시 검색 (예: 서울, 종로구 또는 Tokyo, New York)"
             className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
             role="combobox"

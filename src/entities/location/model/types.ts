@@ -1,9 +1,4 @@
-export interface District {
-  code: string;
-  name: string;
-  lat: number;
-  lon: number;
-}
+export type { District } from "@/shared/model/district";
 
 export interface Favorite {
   id: string;

@@ -112,7 +112,7 @@ export function Sidebar() {
                       handleSelectLocation({
                         lat: fav.lat,
                         lon: fav.lon,
-                        name: fav.name,
+                        name: fav.alias,
                       })
                     }
                   />

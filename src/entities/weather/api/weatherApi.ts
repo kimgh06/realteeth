@@ -31,31 +31,37 @@ async function fetchForecast(
   return res.json();
 }
 
-const KST_DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+
+// Returns a Date where UTC accessors (getUTCHours, getUTCDate, etc.) give local time
+function toLocalDate(utcUnix: number, offsetSec: number): Date {
+  return new Date((utcUnix + offsetSec) * 1000);
+}
+
+function localDateStr(utcUnix: number, offsetSec: number): string {
+  const d = toLocalDate(utcUnix, offsetSec);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
 
 function deriveDailyForecast(
   forecast: OWMForecastResponse,
+  timezoneOffset: number,
 ): DailyForecast[] {
+  const nowUnix = Math.floor(Date.now() / 1000);
+  const todayStr = localDateStr(nowUnix, timezoneOffset);
+
   const grouped = new Map<
     string,
-    { temps_min: number[]; temps_max: number[]; icons: string[]; descs: string[]; pops: number[] }
+    { temps_min: number[]; temps_max: number[]; icons: string[]; descs: string[]; pops: number[]; dayOfWeek: number }
   >();
 
-  const todayKST = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }),
-  );
-  const todayStr = `${todayKST.getFullYear()}-${String(todayKST.getMonth() + 1).padStart(2, "0")}-${String(todayKST.getDate()).padStart(2, "0")}`;
-
   for (const item of forecast.list) {
-    const kstDate = new Date(
-      new Date(item.dt * 1000).toLocaleString("en-US", { timeZone: "Asia/Seoul" }),
-    );
-    const key = `${kstDate.getFullYear()}-${String(kstDate.getMonth() + 1).padStart(2, "0")}-${String(kstDate.getDate()).padStart(2, "0")}`;
-
+    const key = localDateStr(item.dt, timezoneOffset);
     if (key === todayStr) continue;
 
     if (!grouped.has(key)) {
-      grouped.set(key, { temps_min: [], temps_max: [], icons: [], descs: [], pops: [] });
+      const d = toLocalDate(item.dt, timezoneOffset);
+      grouped.set(key, { temps_min: [], temps_max: [], icons: [], descs: [], pops: [], dayOfWeek: d.getUTCDay() });
     }
     const g = grouped.get(key)!;
     g.temps_min.push(item.main.temp_min);
@@ -67,10 +73,7 @@ function deriveDailyForecast(
 
   const result: DailyForecast[] = [];
   for (const [dateStr, g] of grouped) {
-    const d = new Date(dateStr + "T12:00:00+09:00");
-    const dayName = KST_DAY_NAMES[d.getDay()]!;
-
-    // Pick noon icon (12:00-15:00 interval) or most common
+    const dayName = DAY_NAMES[g.dayOfWeek]!;
     const noonIdx = g.icons.length >= 4 ? 3 : Math.floor(g.icons.length / 2);
     const icon = g.icons[noonIdx] ?? g.icons[0] ?? "01d";
     const desc = g.descs[noonIdx] ?? g.descs[0] ?? "";
@@ -101,15 +104,13 @@ async function getWeatherData(
     fetchForecast(lat, lon),
   ]);
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const timezoneOffset = current.timezone;
+  const nowUnix = Math.floor(Date.now() / 1000);
+  const todayStr = localDateStr(nowUnix, timezoneOffset);
 
-  const todayForecasts = forecast.list.filter((item) => {
-    const d = new Date(item.dt * 1000);
-    return d >= todayStart && d <= todayEnd;
-  });
+  const todayForecasts = forecast.list.filter(
+    (item) => localDateStr(item.dt, timezoneOffset) === todayStr,
+  );
 
   const allTodayTemps = [
     current.main.temp,
@@ -141,7 +142,8 @@ async function getWeatherData(
       description: item.weather[0] ? getWeatherDescription(item.weather[0].id) : "",
       pop: Math.round(item.pop * 100),
     })),
-    daily: deriveDailyForecast(forecast),
+    daily: deriveDailyForecast(forecast, timezoneOffset),
+    timezoneOffset,
   };
 }
 

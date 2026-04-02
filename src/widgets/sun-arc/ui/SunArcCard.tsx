@@ -3,17 +3,18 @@ import { Sunrise, Sunset } from "lucide-react";
 interface Props {
   sunrise: number;
   sunset: number;
+  timezoneOffset: number;
 }
 
-function formatTime(unix: number): string {
-  const d = new Date(unix * 1000);
-  const h = d.getHours();
-  const m = d.getMinutes().toString().padStart(2, "0");
+function formatTime(unix: number, offsetSec: number): string {
+  const d = new Date((unix + offsetSec) * 1000);
+  const h = d.getUTCHours();
+  const m = d.getUTCMinutes().toString().padStart(2, "0");
   const period = h < 12 ? "오전" : "오후";
   return `${period} ${h % 12 || 12}:${m}`;
 }
 
-export function SunArcCard({ sunrise, sunset }: Props) {
+export function SunArcCard({ sunrise, sunset, timezoneOffset }: Props) {
   const now = Date.now() / 1000;
   const dayLength = sunset - sunrise;
   const progress = Math.max(0, Math.min(1, (now - sunrise) / dayLength));
@@ -43,7 +44,7 @@ export function SunArcCard({ sunrise, sunset }: Props) {
 
   return (
     <div className="animate-slide-up-delay-3 rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-xl">
-      <h3 className="mb-2 text-xs font-medium tracking-wide text-white/60 uppercase">
+      <h3 className="mb-2 text-xs font-semibold tracking-wide text-white/75 uppercase">
         일출 · 일몰
       </h3>
 
@@ -121,9 +122,10 @@ export function SunArcCard({ sunrise, sunset }: Props) {
           {/* Sunrise label */}
           <text
             x={arcStartX}
-            y={cy + 14}
+            y={cy + 16}
             textAnchor="middle"
-            className="fill-white/40 text-[9px]"
+            fontSize="11"
+            fill="rgba(255,255,255,0.6)"
           >
             일출
           </text>
@@ -131,9 +133,10 @@ export function SunArcCard({ sunrise, sunset }: Props) {
           {/* Sunset label */}
           <text
             x={arcEndX}
-            y={cy + 14}
+            y={cy + 16}
             textAnchor="middle"
-            className="fill-white/40 text-[9px]"
+            fontSize="11"
+            fill="rgba(255,255,255,0.6)"
           >
             일몰
           </text>
@@ -143,12 +146,12 @@ export function SunArcCard({ sunrise, sunset }: Props) {
       {/* Times */}
       <div className="mt-1 flex items-center justify-between px-2">
         <div className="flex items-center gap-1.5">
-          <Sunrise className="h-4 w-4 text-amber-400/70" />
-          <span className="text-sm text-white/70">{formatTime(sunrise)}</span>
+          <Sunrise className="h-4 w-4 text-amber-400/90" />
+          <span className="text-sm font-medium text-white/85">{formatTime(sunrise, timezoneOffset)}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Sunset className="h-4 w-4 text-orange-400/70" />
-          <span className="text-sm text-white/70">{formatTime(sunset)}</span>
+          <Sunset className="h-4 w-4 text-orange-400/90" />
+          <span className="text-sm font-medium text-white/85">{formatTime(sunset, timezoneOffset)}</span>
         </div>
       </div>
     </div>

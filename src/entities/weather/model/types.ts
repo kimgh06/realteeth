@@ -38,6 +38,7 @@ export interface WeatherData {
   current: CurrentWeather;
   hourly: HourlyForecast[];
   daily: DailyForecast[];
+  timezoneOffset: number; // seconds from UTC
 }
 
 export interface OWMCurrentResponse {
@@ -55,6 +56,7 @@ export interface OWMCurrentResponse {
   visibility: number;
   sys: { sunrise: number; sunset: number };
   name: string;
+  timezone: number; // seconds offset from UTC
 }
 
 export interface OWMForecastResponse {

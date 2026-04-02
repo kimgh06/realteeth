@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { OWM_BASE_URL, USE_MOCK } from "@/shared/config";
+import { OWM_BASE_URL, USE_MOCK, DAY_NAMES } from "@/shared/config";
 import type {
   WeatherData,
   DailyForecast,
@@ -31,7 +31,6 @@ async function fetchForecast(
   return res.json();
 }
 
-const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 // Returns a Date where UTC accessors (getUTCHours, getUTCDate, etc.) give local time
 function toLocalDate(utcUnix: number, offsetSec: number): Date {

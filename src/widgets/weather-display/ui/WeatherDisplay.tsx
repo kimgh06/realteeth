@@ -8,6 +8,7 @@ import { SunArcCard } from "@/widgets/sun-arc/ui/SunArcCard";
 import { AirQualityCard } from "@/widgets/air-quality/ui/AirQualityCard";
 import { WindCompass } from "@/entities/weather/ui/WindCompass";
 import { useTempUnit } from "@/shared/lib/TempUnitContext";
+import { DAY_NAMES } from "@/shared/config";
 import type { WeatherData } from "@/entities/weather";
 import type { AirQualityData } from "@/entities/weather/api/airPollutionApi";
 
@@ -21,7 +22,6 @@ interface Props {
   airLoading?: boolean;
 }
 
-const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 function DateTimeLine({ timezoneOffset }: { timezoneOffset: number }) {
   const [nowUnix, setNowUnix] = useState(() => Math.floor(Date.now() / 1000));

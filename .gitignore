@@ -7,3 +7,6 @@ dist
 .DS_Store
 .omc/
 current-state.png
+.sisyphus/
+tsconfig.node.tsbuildinfo
+tsconfig.app.tsbuildinfo

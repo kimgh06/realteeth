@@ -9,27 +9,23 @@ import type {
 import { mockWeatherData } from "./mockData";
 import { getWeatherDescription } from "@/shared/lib/weatherDescription";
 
-async function fetchCurrentWeather(
-  lat: number,
-  lon: number,
-): Promise<OWMCurrentResponse> {
-  const res = await fetch(
-    `${OWM_BASE_URL}/weather?lat=${lat}&lon=${lon}&units=metric&lang=kr`,
-  );
-  if (!res.ok) throw new Error("날씨 정보를 불러올 수 없습니다.");
-  return res.json();
+async function owmFetch<T>(url: string, errorMsg: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(errorMsg);
+  return res.json() as Promise<T>;
 }
 
-async function fetchForecast(
-  lat: number,
-  lon: number,
-): Promise<OWMForecastResponse> {
-  const res = await fetch(
-    `${OWM_BASE_URL}/forecast?lat=${lat}&lon=${lon}&units=metric&lang=kr`,
+const fetchCurrentWeather = (lat: number, lon: number) =>
+  owmFetch<OWMCurrentResponse>(
+    `${OWM_BASE_URL}/weather?lat=${lat}&lon=${lon}&units=metric&lang=kr`,
+    "날씨 정보를 불러올 수 없습니다.",
   );
-  if (!res.ok) throw new Error("예보 정보를 불러올 수 없습니다.");
-  return res.json();
-}
+
+const fetchForecast = (lat: number, lon: number) =>
+  owmFetch<OWMForecastResponse>(
+    `${OWM_BASE_URL}/forecast?lat=${lat}&lon=${lon}&units=metric&lang=kr`,
+    "예보 정보를 불러올 수 없습니다.",
+  );
 
 
 // Returns a Date where UTC accessors (getUTCHours, getUTCDate, etc.) give local time

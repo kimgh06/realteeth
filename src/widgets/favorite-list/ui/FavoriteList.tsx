@@ -31,7 +31,7 @@ function useViewMode(): [ViewMode, (mode: ViewMode) => void] {
   return [mode, setAndSave];
 }
 
-// ─── Grid Card ───────────────────────────────────────────────
+// ─── Shared card logic ────────────────────────────────────────
 
 interface CardProps {
   favorite: Favorite;
@@ -40,7 +40,7 @@ interface CardProps {
   onUndoDelete: () => void;
 }
 
-function GridCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps) {
+function useFavoriteCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { data: weather } = useWeatherSummary(favorite.lat, favorite.lon, favorite.name);
@@ -69,13 +69,37 @@ function GridCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
     });
   };
 
-  const { cardRef, swipeOffset, containerStyle } = useSwipeToDelete(handleRemove);
+  const swipe = useSwipeToDelete(handleRemove);
+  const cardBg = weather
+    ? getWeatherCardGradient(weather.icon)
+    : "linear-gradient(135deg, #4FC3F7, #0288D1)";
+
+  return {
+    weather, convert, unit,
+    isEditing, setIsEditing,
+    editValue, setEditValue,
+    handleSaveAlias, handleClick, handleRemove,
+    cardBg, ...swipe,
+  };
+}
+
+// ─── Grid Card ───────────────────────────────────────────────
+
+function GridCard(props: CardProps) {
+  const {
+    weather, convert, unit,
+    isEditing, setIsEditing,
+    editValue, setEditValue,
+    handleSaveAlias, handleClick, handleRemove,
+    cardBg, cardRef, swipeOffset, containerStyle,
+  } = useFavoriteCard(props);
+
+  const { favorite } = props;
+
   const longPressHandlers = useLongPress(() => {
     setIsEditing(true);
     setEditValue(favorite.alias);
   });
-
-  const cardBg = weather ? getWeatherCardGradient(weather.icon) : "linear-gradient(135deg, #4FC3F7, #0288D1)";
 
   return (
     <div className="relative overflow-hidden rounded-2xl" role="listitem">
@@ -156,38 +180,16 @@ function GridCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
 
 // ─── List Card ───────────────────────────────────────────────
 
-function ListCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps) {
-  const navigate = useNavigate();
-  const { showToast } = useToast();
-  const { data: weather } = useWeatherSummary(favorite.lat, favorite.lon, favorite.name);
-  const { convert, unit } = useTempUnit();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(favorite.alias);
+function ListCard(props: CardProps) {
+  const {
+    weather, convert, unit,
+    isEditing, setIsEditing,
+    editValue, setEditValue,
+    handleSaveAlias, handleClick, handleRemove,
+    cardBg, cardRef, swipeOffset, containerStyle,
+  } = useFavoriteCard(props);
 
-  const handleSaveAlias = () => {
-    if (editValue.trim()) {
-      onUpdateAlias(favorite.id, editValue.trim());
-      showToast("별칭이 수정되었습니다");
-    }
-    setIsEditing(false);
-  };
-
-  const handleClick = () => {
-    if (isEditing) return;
-    navigate(buildDetailUrl(favorite.lat, favorite.lon, favorite.name));
-  };
-
-  const handleRemove = () => {
-    onRemove(favorite.id);
-    showToast(`${favorite.alias} 삭제됨`, {
-      action: { label: "실행 취소", onClick: onUndoDelete },
-      duration: 5000,
-    });
-  };
-
-  const { cardRef, swipeOffset, containerStyle } = useSwipeToDelete(handleRemove);
-
-  const cardBg = weather ? getWeatherCardGradient(weather.icon) : "linear-gradient(135deg, #4FC3F7, #0288D1)";
+  const { favorite } = props;
 
   return (
     <div className="relative overflow-hidden rounded-xl" role="listitem">
@@ -209,10 +211,8 @@ function ListCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
           tabIndex={0}
           aria-label={`${favorite.alias}${weather ? `. ${convert(weather.temp)}도, ${weather.description}` : ""}`}
         >
-          {/* Dark overlay */}
           <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-r from-black/20 to-black/30" />
 
-          {/* Weather icon */}
           <div className="relative z-10 shrink-0">
             {weather ? (
               <WeatherIcon icon={weather.icon} size="sm" />
@@ -221,7 +221,6 @@ function ListCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
             )}
           </div>
 
-          {/* Name + description */}
           <div className="relative z-10 min-w-0 flex-1">
             {isEditing ? (
               <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -256,7 +255,6 @@ function ListCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
             )}
           </div>
 
-          {/* Temperature */}
           <div className="relative z-10 shrink-0 text-right">
             {weather ? (
               <>
@@ -268,7 +266,6 @@ function ListCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: CardProps
             )}
           </div>
 
-          {/* Remove button */}
           <button
             onClick={(e) => { e.stopPropagation(); handleRemove(); }}
             className="relative z-10 shrink-0 rounded-full p-1 text-white/30 opacity-100 hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
@@ -300,7 +297,6 @@ export function FavoriteList({ favorites, onRemove, onUpdateAlias, onUndoDelete 
 
   return (
     <div>
-      {/* Header with view toggle */}
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-medium text-white/70">
           즐겨찾기 (
@@ -329,7 +325,6 @@ export function FavoriteList({ favorites, onRemove, onUpdateAlias, onUndoDelete 
         </div>
       </div>
 
-      {/* Cards */}
       <div
         className={
           viewMode === "grid"

@@ -58,7 +58,7 @@ function useFavoriteCard({ favorite, onRemove, onUpdateAlias, onUndoDelete }: Ca
 
   const handleClick = () => {
     if (isEditing) return;
-    navigate(buildDetailUrl(favorite.lat, favorite.lon, favorite.name));
+    navigate(buildDetailUrl(favorite.lat, favorite.lon, favorite.alias));
   };
 
   const handleRemove = () => {

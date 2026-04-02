@@ -16,8 +16,11 @@ export function useSearchLocation() {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<District | null>(null);
 
-  const debouncedQuery = useDebounce(query, 150);
-  const results = useMemo(() => searchDistricts(debouncedQuery), [debouncedQuery]);
+  const debouncedQuery = useDebounce(query, 200);
+  const results = useMemo(() => {
+    if (!debouncedQuery.trim()) return [];
+    return searchDistricts(debouncedQuery);
+  }, [debouncedQuery]);
 
   const handleSelect = (district: District) => {
     setSelected(district);

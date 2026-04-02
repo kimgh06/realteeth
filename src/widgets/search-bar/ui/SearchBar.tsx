@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Search, X, Clock, Trash2 } from "lucide-react";
 import type { District } from "@/entities/location";
 
@@ -28,6 +28,65 @@ export function SearchBar({
   onClearRecents,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const [localQuery, setLocalQuery] = useState<string>(query);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
+
+  useEffect(() => {
+    setLocalQuery(query);
+  }, [query]);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [results]);
+
+  useEffect(() => {
+    if (activeIndex >= 0) {
+      const el = document.getElementById(`result-${activeIndex}`);
+      el?.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeIndex]);
+
+  const onInputChange = (val: string) => {
+    setLocalQuery(val);
+    onQueryChange(val);
+  };
+
+  // Keyboard navigation within results
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
+      if (activeIndex >= 0 && results[activeIndex]) {
+        onSelect(results[activeIndex]!);
+      }
+    } else if (e.key === "Escape") {
+      onToggle();
+    }
+  };
+
+  // Highlight matched text for better visibility
+  const highlight = (text: string) => {
+    if (!localQuery) return text;
+    const q = localQuery.toLowerCase();
+    const t = text.toLowerCase();
+    const idx = t.indexOf(q);
+    if (idx < 0) return text;
+    const before = text.substring(0, idx);
+    const match = text.substring(idx, idx + localQuery.length);
+    const after = text.substring(idx + localQuery.length);
+    return (
+      <span>
+        {before}
+        <mark style={{ background: "yellow" }}>{match}</mark>
+        {after}
+      </span>
+    );
+  };
 
   useEffect(() => {
     if (isExpanded) {
@@ -72,13 +131,15 @@ export function SearchBar({
           <input
             ref={inputRef}
             type="text"
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="장소 검색 (예: 서울, 종로구, 청운동)"
+            value={localQuery}
+            onChange={(e) => onInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="장소 검색 (예: 서울, 종로구, 청운동) 또는 / 키를 누르세요"
             className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
             role="combobox"
             aria-expanded={isOpen && results.length > 0}
             aria-label="장소 검색"
+            aria-controls="search-results"
           />
           <button
             onClick={() => {
@@ -106,29 +167,43 @@ export function SearchBar({
                 </button>
               )}
             </div>
-            {recentSearches!.map((d) => (
+            {recentSearches!.map((d, idx) => (
               <button
-                key={d.code}
+                key={d.code ?? `recent-${idx}`}
                 onClick={() => onSelect(d)}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-white/80 transition-colors hover:bg-white/10"
               >
                 <Clock className="h-3.5 w-3.5 shrink-0 text-white/30" />
-                {d.name}
+                {highlight(d.name)}
               </button>
             ))}
           </div>
         )}
 
+        {/* Screen reader announcement */}
+        {isOpen && (
+          <div role="status" aria-live="polite" className="sr-only">
+            {results.length > 0
+              ? `${results.length}개의 검색 결과`
+              : query.trim().length > 0
+              ? "검색 결과가 없습니다"
+              : ""}
+          </div>
+        )}
+
         {/* Search results */}
         {isOpen && results.length > 0 && (
-          <ul className="animate-slide-down mt-2 max-h-80 overflow-y-auto rounded-2xl border border-white/20 bg-white/10 py-1 backdrop-blur-xl">
-            {results.map((d) => (
+          <ul id="search-results" ref={listRef} role="listbox" className="animate-slide-down mt-2 max-h-80 overflow-y-auto rounded-2xl border border-white/20 bg-white/10 py-1 backdrop-blur-xl scroll-smooth">
+            {results.map((d, idx) => (
               <li key={d.code}>
                 <button
+                  id={`result-${idx}`}
+                  role="option"
+                  aria-selected={activeIndex === idx}
                   onClick={() => onSelect(d)}
-                  className="w-full px-4 py-3 text-left text-sm text-white/90 transition-colors hover:bg-white/10"
+                  className={`w-full px-4 py-3 text-left text-sm text-white/90 transition-colors hover:bg-white/10 ${activeIndex === idx ? 'bg-white/20' : ''}`}
                 >
-                  {d.name}
+                  {highlight(d.name)}
                 </button>
               </li>
             ))}
@@ -137,7 +212,16 @@ export function SearchBar({
 
         {isOpen && query.trim().length > 0 && results.length === 0 && (
           <div className="animate-slide-down mt-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white/60 backdrop-blur-xl">
-            검색 결과가 없습니다.
+            <p>검색 결과가 없습니다.</p>
+            <p className="mt-1 text-xs text-white/40">다른 검색어를 시도해 보세요.</p>
+          </div>
+        )}
+
+        {isOpen && results.length > 0 && (
+          <div className="mt-2 px-1 text-center">
+            <span className="text-[10px] text-white/30">
+              ↑↓ 키로 이동, Enter로 선택, Esc로 닫기
+            </span>
           </div>
         )}
       </div>

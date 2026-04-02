@@ -56,6 +56,15 @@ export default defineConfig(({ mode }) => {
             return `${rewritten}${separator}appid=${env.VITE_OWM_API_KEY}`;
           },
         },
+        "/api/geo": {
+          target: "https://api.openweathermap.org",
+          changeOrigin: true,
+          rewrite: (path) => {
+            const rewritten = path.replace(/^\/api\/geo/, "/geo/1.0");
+            const separator = rewritten.includes("?") ? "&" : "?";
+            return `${rewritten}${separator}appid=${env.VITE_OWM_API_KEY}`;
+          },
+        },
       },
     },
   };

@@ -134,7 +134,7 @@ export function SearchBar({
             value={localQuery}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="장소 검색 (예: 서울, 종로구, 청운동) 또는 / 키를 누르세요"
+            placeholder="도시 검색 (예: 서울, 종로구 또는 Tokyo, New York)"
             className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
             role="combobox"
             aria-expanded={isOpen && results.length > 0}

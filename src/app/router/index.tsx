@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { HomePage } from "@/pages/home";
 import { DetailPage } from "@/pages/detail";
 import { FavoritesPage } from "@/pages/favorites";
@@ -11,6 +11,7 @@ export function AppRouter() {
         <Route path="/" element={<HomePage />} />
         <Route path="/detail" element={<DetailPage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );

@@ -113,7 +113,9 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
   const isFavorite = useCallback(
     (lat: number, lon: number) => {
-      return favorites.some((f) => f.lat === lat && f.lon === lon);
+      return favorites.some(
+        (f) => Math.abs(f.lat - lat) < 0.001 && Math.abs(f.lon - lon) < 0.001,
+      );
     },
     [favorites],
   );

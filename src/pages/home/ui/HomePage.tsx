@@ -16,6 +16,7 @@ import { useToast } from "@/shared/lib/useToast";
 import { useSidebar } from "@/shared/lib/useSidebar";
 import { useSelectedLocation } from "@/shared/lib/useSelectedLocation";
 import { useRecentSearches } from "@/shared/lib/useRecentSearches";
+import { useKeyboardShortcuts } from "@/shared/lib/useKeyboardShortcuts";
 
 export function HomePage() {
   const queryClient = useQueryClient();
@@ -30,8 +31,9 @@ export function HomePage() {
 
   // Auto-open search if navigated with ?search=1
   const [searchExpanded, setSearchExpanded] = useState(false);
+  useKeyboardShortcuts(() => setSearchExpanded(true));
   useEffect(() => {
-    if (searchParams.get("search") === "1") {
+    if (searchParams.get("search") === "true") {
       setSearchExpanded(true);
     }
   }, [searchParams]);

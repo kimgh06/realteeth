@@ -28,7 +28,7 @@ export function Sidebar() {
 
   const handleSearch = () => {
     close();
-    navigate("/?search=1");
+    navigate("/?search=true");
   };
 
   return (

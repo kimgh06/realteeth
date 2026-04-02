@@ -39,7 +39,7 @@ export function FavoritesPage() {
               if (favorites.length >= MAX_FAVORITES) {
                 showToast("최대 6개까지 추가할 수 있습니다");
               } else {
-                navigate("/?search=1");
+                navigate("/?search=true");
               }
             }}
             className={`rounded-full p-2 transition-colors ${
@@ -62,7 +62,7 @@ export function FavoritesPage() {
               홈 화면에서 장소를 검색하여 추가하세요
             </p>
             <button
-              onClick={() => navigate("/?search=1")}
+              onClick={() => navigate("/?search=true")}
               className="mt-6 rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/15"
             >
               장소 검색하기

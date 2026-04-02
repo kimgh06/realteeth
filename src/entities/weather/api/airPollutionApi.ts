@@ -1,12 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { OWM_BASE_URL, USE_MOCK } from "@/shared/config";
 
+export interface AqGrade {
+  label: string;
+  color: string;
+}
+
 export interface AirQualityData {
   aqi: number;
   pm2_5: number;
   pm10: number;
-  label: string;
-  color: string;
+  pm25Grade: AqGrade;
+  pm10Grade: AqGrade;
 }
 
 interface OWMAirPollutionResponse {
@@ -19,16 +24,26 @@ interface OWMAirPollutionResponse {
   }[];
 }
 
-const AQI_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: "좋음", color: "#4CAF50" },
-  2: { label: "보통", color: "#8BC34A" },
-  3: { label: "나쁨", color: "#FF9800" },
-  4: { label: "매우나쁨", color: "#F44336" },
-  5: { label: "위험", color: "#9C27B0" },
-};
+// 한국 환경부 PM2.5 기준 (µg/m³)
+function gradeFromPM25(v: number): AqGrade {
+  if (v <= 15) return { label: "좋음", color: "#4CAF50" };
+  if (v <= 35) return { label: "보통", color: "#8BC34A" };
+  if (v <= 75) return { label: "나쁨", color: "#FF9800" };
+  return { label: "매우나쁨", color: "#F44336" };
+}
+
+// 한국 환경부 PM10 기준 (µg/m³)
+function gradeFromPM10(v: number): AqGrade {
+  if (v <= 30) return { label: "좋음", color: "#4CAF50" };
+  if (v <= 80) return { label: "보통", color: "#8BC34A" };
+  if (v <= 150) return { label: "나쁨", color: "#FF9800" };
+  return { label: "매우나쁨", color: "#F44336" };
+}
 
 function mockAirQuality(): AirQualityData {
-  return { aqi: 2, pm2_5: 15.2, pm10: 28.5, label: "보통", color: "#8BC34A" };
+  const pm2_5 = 15.2;
+  const pm10 = 28.5;
+  return { aqi: 2, pm2_5, pm10, pm25Grade: gradeFromPM25(pm2_5), pm10Grade: gradeFromPM10(pm10) };
 }
 
 async function fetchAirPollution(
@@ -46,15 +61,15 @@ async function fetchAirPollution(
   const item = data.list[0];
   if (!item) throw new Error("대기질 데이터가 없습니다.");
 
-  const aqi = item.main.aqi;
-  const info = AQI_LABELS[aqi] ?? { label: "알 수 없음", color: "#9E9E9E" };
+  const pm2_5 = Math.round(item.components.pm2_5 * 10) / 10;
+  const pm10 = Math.round(item.components.pm10 * 10) / 10;
 
   return {
-    aqi,
-    pm2_5: Math.round(item.components.pm2_5 * 10) / 10,
-    pm10: Math.round(item.components.pm10 * 10) / 10,
-    label: info.label,
-    color: info.color,
+    aqi: item.main.aqi,
+    pm2_5,
+    pm10,
+    pm25Grade: gradeFromPM25(pm2_5),
+    pm10Grade: gradeFromPM10(pm10),
   };
 }
 

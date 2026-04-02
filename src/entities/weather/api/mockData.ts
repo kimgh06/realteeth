@@ -40,5 +40,6 @@ export function mockWeatherData(name?: string): WeatherData {
         pop: [0, 10, 30, 80, 5][i]!,
       };
     }),
+    timezoneOffset: 32400, // KST (UTC+9)
   };
 }

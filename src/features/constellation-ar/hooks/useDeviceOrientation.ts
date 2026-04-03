@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { PermissionState } from '../model/types';
 
 const EMA_FACTOR = 0.15;
+const DEG = Math.PI / 180;
 
 function detectDesktop(): boolean {
   if (!('DeviceOrientationEvent' in window)) return true;
@@ -14,16 +15,34 @@ function detectDesktop(): boolean {
   return navigator.maxTouchPoints === 0;
 }
 
+// Tilt-compensated azimuth from W3C ZXY Euler angles.
+// Uses all three axes to avoid gimbal lock when phone is near-horizontal (beta≈0).
+// iOS: skipped — webkitCompassHeading already provides tilt compensation at OS level.
+function computeAzimuth(alpha: number, beta: number, gamma: number): number {
+  const a = alpha * DEG, b = beta * DEG, g = gamma * DEG;
+  const sa = Math.sin(a), ca = Math.cos(a);
+  const sb = Math.sin(b);
+  const sg = Math.sin(g), cg = Math.cos(g);
+
+  // W3C ZXY rotation matrix rows [0][1] and [1][1]:
+  // East  = R[0][1] = sa*sg - ca*sb*cg
+  // North = R[1][1] = ca*sg + sa*sb*cg
+  // Negated because device convention is reversed from geographic compass
+  const east = sa * sg - ca * sb * cg;
+  const north = ca * sg + sa * sb * cg;
+  return ((Math.atan2(-east, -north) / DEG) + 360) % 360;
+}
+
 // altitude = elevation angle from horizon (0=horizon, 90=zenith)
 // Device beta: 90=upright(portrait). Tilting top toward user → beta→180 = looking up
-// altitude = beta - 90
 function betaToAltitude(beta: number): number {
   return Math.max(-90, Math.min(90, beta - 90));
 }
 
 interface RawSmoothed {
   azimuth: number;
-  beta: number; // raw beta kept for EMA, converted to altitude on output
+  beta: number;
+  gamma: number;
 }
 
 interface DragState {
@@ -44,21 +63,16 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
     () => detectDesktop() ? 'unsupported' : 'idle'
   );
   const [azimuth, setAzimuth] = useState(0);
-  const [altitude, setAltitude] = useState(25); // default: slightly above horizon
+  const [altitude, setAltitude] = useState(25);
   const [dragOffset, setDragOffset] = useState({ az: 0, alt: 0 });
 
-  const smoothedRef = useRef<RawSmoothed>({ azimuth: 0, beta: 65 });
+  const smoothedRef = useRef<RawSmoothed>({ azimuth: 0, beta: 65, gamma: 0 });
   const nullStartRef = useRef<number | null>(null);
   const listeningRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number; az: number; alt: number } | null>(null);
 
   const handleOrientation = useCallback((e: DeviceOrientationEvent) => {
     const webkitHeading = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
-    // webkitCompassHeading (iOS): 0=N, clockwise ✓
-    // deviceorientationabsolute.alpha (Android): 0=N, counter-clockwise → invert to get compass heading
-    const rawAzimuth = webkitHeading != null
-      ? webkitHeading
-      : (360 - (e.alpha ?? 0)) % 360;
 
     if (e.alpha === null && webkitHeading == null) {
       if (nullStartRef.current === null) {
@@ -72,19 +86,29 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
 
     nullStartRef.current = null;
 
-    const beta = e.beta ?? 65;
+    const rawAlpha = e.alpha ?? 0;
+    const rawBeta = e.beta ?? 65;
+    const rawGamma = e.gamma ?? 0;
+
+    // iOS: use webkitCompassHeading (tilt-compensated at OS level)
+    // Android: compute tilt-compensated azimuth from all three axes to avoid gimbal lock
+    const rawAzimuth = webkitHeading != null
+      ? webkitHeading
+      : computeAzimuth(rawAlpha, rawBeta, rawGamma);
+
     const prev = smoothedRef.current;
 
-    // EMA for beta
-    const smoothBeta = prev.beta + EMA_FACTOR * (beta - prev.beta);
+    // EMA for beta and gamma
+    const smoothBeta = prev.beta + EMA_FACTOR * (rawBeta - prev.beta);
+    const smoothGamma = prev.gamma + EMA_FACTOR * (rawGamma - prev.gamma);
 
-    // EMA for azimuth — must handle wrap-around
+    // EMA for azimuth — wrap-around safe
     let dAz = rawAzimuth - prev.azimuth;
     if (dAz > 180) dAz -= 360;
     if (dAz < -180) dAz += 360;
     const smoothAzimuth = (prev.azimuth + EMA_FACTOR * dAz + 360) % 360;
 
-    smoothedRef.current = { azimuth: smoothAzimuth, beta: smoothBeta };
+    smoothedRef.current = { azimuth: smoothAzimuth, beta: smoothBeta, gamma: smoothGamma };
     setAzimuth(smoothAzimuth);
     setAltitude(betaToAltitude(smoothBeta));
   }, []);
@@ -121,7 +145,7 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
         setPermission('denied');
       }
     } else if ('DeviceOrientationEvent' in window) {
-      // Android Chrome: prefer deviceorientationabsolute (absolute north-referenced heading)
+      // Android Chrome: prefer deviceorientationabsolute for absolute north-referenced heading
       setPermission('granted');
       listeningRef.current = true;
       const supportsAbsolute = typeof (window as unknown as Record<string, unknown>)['ondeviceorientationabsolute'] !== 'undefined';

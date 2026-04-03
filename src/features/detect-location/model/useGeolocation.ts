@@ -9,24 +9,22 @@ interface GeoState {
   loading: boolean;
 }
 
+const DEFAULT_LAT = 37.5665;
+const DEFAULT_LON = 126.978;
+const DEFAULT_NAME = "서울특별시";
+
 export function useGeolocation() {
   const [state, setState] = useState<GeoState>({
-    lat: null,
-    lon: null,
-    name: null,
+    lat: DEFAULT_LAT,
+    lon: DEFAULT_LON,
+    name: DEFAULT_NAME,
     error: null,
     loading: true,
   });
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setState({
-        lat: 37.5665,
-        lon: 126.978,
-        name: "서울특별시",
-        error: null,
-        loading: false,
-      });
+      setState((s) => ({ ...s, loading: false }));
       return;
     }
 
@@ -44,15 +42,9 @@ export function useGeolocation() {
         });
       },
       () => {
-        setState({
-          lat: 37.5665,
-          lon: 126.978,
-          name: "서울특별시",
-          error: null,
-          loading: false,
-        });
+        setState((s) => ({ ...s, loading: false }));
       },
-      { enableHighAccuracy: false, timeout: 10000 },
+      { enableHighAccuracy: false, timeout: 5000 },
     );
   }, []);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { Menu, Star, StarOff } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Menu, Star, StarOff, Telescope } from "lucide-react";
 import { useGeolocation } from "@/features/detect-location/model/useGeolocation";
 import { useSearchLocation } from "@/features/search-location/model/useSearchLocation";
 import { useFavorites } from "@/features/manage-favorites/model/useFavorites";
@@ -21,6 +21,7 @@ import { useKeyboardShortcuts } from "@/shared/lib/useKeyboardShortcuts";
 export function HomePage() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { toggle: toggleSidebar } = useSidebar();
   const { selected: selectedLoc } = useSelectedLocation();
@@ -90,6 +91,11 @@ export function HomePage() {
     }
   };
 
+  const nowUnix = Math.floor(Date.now() / 1000);
+  const sunrise = data?.current?.sunrise;
+  const sunset = data?.current?.sunset;
+  const isNight = sunrise && sunset ? (nowUnix < sunrise || nowUnix > sunset) : false;
+
   const bgGradient = getWeatherGradient(data?.current.icon);
 
   return (
@@ -142,26 +148,38 @@ export function HomePage() {
             />
           </div>
 
-          {showStarButton && (
-            <button
-              onClick={handleToggleFavorite}
-              className={`rounded-full p-3 backdrop-blur-md transition-colors ${
-                isCurrentFav
-                  ? "bg-amber-500/30 hover:bg-amber-500/40"
-                  : favorites.length >= MAX_FAVORITES
-                    ? "bg-black/10 opacity-50"
-                    : "bg-black/20 hover:bg-black/30"
-              }`}
-              aria-label={isCurrentFav ? "즐겨찾기 해제" : "즐겨찾기에 추가"}
-              aria-pressed={isCurrentFav}
-            >
-              {isCurrentFav ? (
-                <StarOff className="h-5 w-5 text-amber-300" />
-              ) : (
-                <Star className="h-5 w-5 text-white" />
-              )}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {isNight && (
+              <button
+                onClick={() => navigate("/constellation")}
+                className="rounded-full bg-black/20 p-2 backdrop-blur-md text-white/80 hover:text-white hover:bg-black/30 transition-colors"
+                aria-label="별자리 찾기"
+              >
+                <Telescope className="h-5 w-5" />
+              </button>
+            )}
+
+            {showStarButton && (
+              <button
+                onClick={handleToggleFavorite}
+                className={`rounded-full p-3 backdrop-blur-md transition-colors ${
+                  isCurrentFav
+                    ? "bg-amber-500/30 hover:bg-amber-500/40"
+                    : favorites.length >= MAX_FAVORITES
+                      ? "bg-black/10 opacity-50"
+                      : "bg-black/20 hover:bg-black/30"
+                }`}
+                aria-label={isCurrentFav ? "즐겨찾기 해제" : "즐겨찾기에 추가"}
+                aria-pressed={isCurrentFav}
+              >
+                {isCurrentFav ? (
+                  <StarOff className="h-5 w-5 text-amber-300" />
+                ) : (
+                  <Star className="h-5 w-5 text-white" />
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

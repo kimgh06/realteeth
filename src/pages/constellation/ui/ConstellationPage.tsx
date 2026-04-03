@@ -1,0 +1,124 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { X } from "lucide-react";
+import { useGeolocation } from "@/features/detect-location/model/useGeolocation";
+import { useCamera } from "@/features/constellation-ar/hooks/useCamera";
+import { useDeviceOrientation } from "@/features/constellation-ar/hooks/useDeviceOrientation";
+import { PermissionGate } from "@/features/constellation-ar/ui/PermissionGate";
+import { SkyCanvas } from "@/features/constellation-ar/ui/SkyCanvas";
+import { CenterIndicator } from "@/features/constellation-ar/ui/CenterIndicator";
+import { CompassHints } from "@/features/constellation-ar/ui/CompassHints";
+import catalogData from "@/features/constellation-ar/data/catalog.json";
+import type { CatalogData } from "@/features/constellation-ar/model/types";
+
+const catalog = catalogData as CatalogData;
+
+export function ConstellationPage() {
+  const navigate = useNavigate();
+  const geo = useGeolocation();
+  const { videoRef, permission: cameraPermission, requestCamera } = useCamera();
+  const {
+    alpha,
+    beta,
+    gamma,
+    permission: orientationPermission,
+    requestOrientation,
+  } = useDeviceOrientation();
+
+  const [centerConstellation, setCenterConstellation] = useState<string | null>(null);
+  const [showDaytimeBanner, setShowDaytimeBanner] = useState(true);
+
+  const localHour = new Date().getHours();
+  const isDaytime = localHour >= 6 && localHour < 19;
+
+  const requestAll = async () => {
+    await requestCamera();
+    await requestOrientation();
+  };
+
+  // Lock portrait orientation (optional, fails silently on unsupported browsers)
+  useEffect(() => {
+    const orientation = screen.orientation as ScreenOrientation & {
+      lock?: (orientation: string) => Promise<void>;
+      unlock?: () => void;
+    };
+    orientation.lock?.("portrait").catch(() => {});
+    return () => {
+      orientation.unlock?.();
+    };
+  }, []);
+
+  const lat = geo.lat ?? 37.5665;
+  const lon = geo.lon ?? 126.978;
+
+  const showPermissionGate =
+    cameraPermission !== "granted" || orientationPermission !== "granted";
+
+  return (
+    <div
+      className="fixed inset-0 overflow-hidden bg-[#0d1b2a]"
+      style={{ touchAction: "none" }}
+    >
+      {showPermissionGate ? (
+        <PermissionGate
+          cameraPermission={cameraPermission}
+          orientationPermission={orientationPermission}
+          onRequest={requestAll}
+        />
+      ) : (
+        <>
+          {/* Camera feed */}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+
+          {/* Star canvas overlay */}
+          <SkyCanvas
+            catalog={catalog}
+            orientation={{ alpha, beta, gamma }}
+            lat={lat}
+            lon={lon}
+            onCenterConstellation={setCenterConstellation}
+          />
+
+          {/* Compass hints */}
+          <CompassHints alpha={alpha} />
+
+          {/* Top bar */}
+          <div className="absolute left-0 right-0 top-0 flex items-center justify-between px-4 py-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="rounded-full bg-black/30 p-2 backdrop-blur-sm"
+              aria-label="뒤로가기"
+            >
+              <X className="h-5 w-5 text-white" />
+            </button>
+            <span className="text-sm font-semibold text-white drop-shadow">별자리 찾기</span>
+            <div className="w-9" />
+          </div>
+
+          {/* Daytime banner */}
+          {isDaytime && showDaytimeBanner && (
+            <div className="absolute left-4 right-4 top-16 flex items-center justify-between rounded-xl bg-amber-500/20 px-4 py-2 backdrop-blur-sm">
+              <span className="text-sm text-amber-200">별은 밤에 더 잘 보여요</span>
+              <button
+                onClick={() => setShowDaytimeBanner(false)}
+                className="text-amber-200/60 hover:text-amber-200"
+                aria-label="닫기"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Bottom constellation indicator */}
+          <CenterIndicator constellationName={centerConstellation} />
+        </>
+      )}
+    </div>
+  );
+}

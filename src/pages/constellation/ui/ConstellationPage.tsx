@@ -13,6 +13,11 @@ import type { CatalogData } from "@/features/constellation-ar/model/types";
 
 const catalog = catalogData as CatalogData;
 
+function headingLabel(alpha: number): string {
+  const dirs = ["북", "북동", "동", "남동", "남", "남서", "서", "북서"];
+  return dirs[Math.round(alpha / 45) % 8]!;
+}
+
 export function ConstellationPage() {
   const navigate = useNavigate();
   const geo = useGeolocation();
@@ -23,28 +28,19 @@ export function ConstellationPage() {
     gamma,
     dragOffset,
     onMouseDown,
+    onTouchStart,
     permission: orientationPermission,
     requestOrientation,
   } = useDeviceOrientation();
 
   const [centerConstellation, setCenterConstellation] = useState<string | null>(null);
   const [showDaytimeBanner, setShowDaytimeBanner] = useState(true);
+  const [showDebug, setShowDebug] = useState(import.meta.env.DEV);
 
   const localHour = new Date().getHours();
   const isDaytime = localHour >= 6 && localHour < 19;
 
-  // Auto-detect desktop: try orientation immediately on mount
-  // If no gyroscope, orientationPermission becomes 'unsupported'
-  useEffect(() => {
-    requestOrientation();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Desktop = no compass available
-  const isDesktop = orientationPermission === "unsupported";
-
   const requestAll = async () => {
-    if (isDesktop) return; // desktop: no permissions needed
     await requestCamera();
     await requestOrientation();
   };
@@ -62,10 +58,19 @@ export function ConstellationPage() {
   const lat = geo.lat ?? 37.5665;
   const lon = geo.lon ?? 126.978;
 
-  // Desktop: skip permission gate entirely, go straight to star map
-  // Mobile: need camera + orientation granted
+  const noCamera = cameraPermission === "unsupported";
+  const isDesktop = orientationPermission === "unsupported" || noCamera;
+
+  // Auto-request orientation when camera is unavailable (HTTP fallback)
+  useEffect(() => {
+    if (noCamera && !isDesktop && orientationPermission === "idle") {
+      requestOrientation();
+    }
+  }, [noCamera, isDesktop, orientationPermission, requestOrientation]);
+
   const showPermissionGate =
     !isDesktop &&
+    !noCamera &&
     (cameraPermission !== "granted" || orientationPermission !== "granted");
 
   return (
@@ -73,6 +78,7 @@ export function ConstellationPage() {
       className="fixed inset-0 overflow-hidden bg-[#0d1b2a]"
       style={{ touchAction: "none" }}
       onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
     >
       {showPermissionGate ? (
         <PermissionGate
@@ -82,8 +88,8 @@ export function ConstellationPage() {
         />
       ) : (
         <>
-          {/* Camera feed — mobile only */}
-          {!isDesktop && (
+          {/* Camera feed — mobile only, skipped when unavailable (HTTP) */}
+          {!isDesktop && !noCamera && (
             <video
               ref={videoRef}
               autoPlay
@@ -107,9 +113,9 @@ export function ConstellationPage() {
           {!isDesktop && <CompassHints alpha={alpha} />}
 
           {/* Desktop drag hint */}
-          {isDesktop && (
+          {isDesktop && navigator.maxTouchPoints === 0 && (
             <div className="absolute top-20 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/30 px-3 py-1 text-xs text-white/50 backdrop-blur-sm">
-              마우스로 드래그하여 탐색
+              드래그하여 탐색
             </div>
           )}
 
@@ -122,7 +128,18 @@ export function ConstellationPage() {
             >
               <X className="h-5 w-5 text-white" />
             </button>
-            <span className="text-sm font-semibold text-white drop-shadow">별자리 찾기</span>
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-sm font-semibold text-white drop-shadow">별자리 찾기</span>
+              {!isDesktop ? (
+                <span className="text-[11px] text-white/50 tabular-nums">
+                  {headingLabel(alpha)} · {Math.round(alpha)}° · 고도 {Math.round(90 - beta)}°
+                </span>
+              ) : (
+                <span className="text-[11px] text-white/50 tabular-nums">
+                  {headingLabel((dragOffset.az % 360 + 360) % 360)} · 고도 {Math.round(Math.max(-90, Math.min(90, dragOffset.alt)))}°
+                </span>
+              )}
+            </div>
             <div className="w-9" />
           </div>
 
@@ -138,6 +155,21 @@ export function ConstellationPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
+          )}
+
+          {showDebug && (
+            <button
+              onClick={() => setShowDebug(false)}
+              className="absolute right-2 bottom-20 z-50 rounded bg-white/10 px-2 py-1 text-[10px] text-white/60"
+            >
+              <div>cam={cameraPermission} ori={orientationPermission}</div>
+              <div>desktop={isDesktop ? "Y" : "N"} gate={showPermissionGate ? "Y" : "N"}</div>
+              <div>α={Math.round(alpha)} β={Math.round(beta)} γ={Math.round(gamma)}</div>
+              <div>drag az={Math.round(dragOffset.az)} alt={Math.round(dragOffset.alt)}</div>
+              <div>lat={lat.toFixed(2)} lon={lon.toFixed(2)}</div>
+              <div>secure={window.isSecureContext ? "Y" : "N"}</div>
+              <div className="mt-1 text-white/40">tap to dismiss</div>
+            </button>
           )}
 
           {/* Bottom constellation indicator */}

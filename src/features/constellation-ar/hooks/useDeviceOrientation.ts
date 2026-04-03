@@ -16,21 +16,24 @@ function detectDesktop(): boolean {
 }
 
 // Tilt-compensated azimuth from W3C ZXY Euler angles.
-// Uses all three axes to avoid gimbal lock when phone is near-horizontal (beta≈0).
+// Projects the camera's forward direction (-Z device axis) onto the horizontal plane.
+// This is correct at all tilt angles including upright (beta=90) and near-flat (beta≈0).
 // iOS: skipped — webkitCompassHeading already provides tilt compensation at OS level.
+//
+// Derivation: camera_earth = M^T · [0,0,-1], where M = Ry(γ)·Rx(β)·Rz(α) (W3C ZXY)
+//   East  = cα·sγ + sα·sβ·cγ
+//   North = -sα·sγ + cα·sβ·cγ
+// Android alpha is CCW → negate the result to get CW compass heading.
 function computeAzimuth(alpha: number, beta: number, gamma: number): number {
   const a = alpha * DEG, b = beta * DEG, g = gamma * DEG;
   const sa = Math.sin(a), ca = Math.cos(a);
   const sb = Math.sin(b);
   const sg = Math.sin(g), cg = Math.cos(g);
 
-  // W3C ZXY rotation matrix rows [0][1] and [1][1]:
-  // East  = R[0][1] = sa*sg - ca*sb*cg
-  // North = R[1][1] = ca*sg + sa*sb*cg
-  // Negated because device convention is reversed from geographic compass
-  const east = sa * sg - ca * sb * cg;
-  const north = ca * sg + sa * sb * cg;
-  return ((Math.atan2(-east, -north) / DEG) + 360) % 360;
+  const east  =  ca * sg + sa * sb * cg;
+  const north = -sa * sg + ca * sb * cg;
+  // Negate atan2 result: Android alpha is CCW, compass is CW
+  return ((-(Math.atan2(east, north) / DEG)) + 360) % 360;
 }
 
 // altitude = elevation angle from horizon (0=horizon, 90=zenith)

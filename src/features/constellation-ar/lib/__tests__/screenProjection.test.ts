@@ -53,8 +53,9 @@ describe('projectToCanvas', () => {
   });
 
   it('respects custom FOV parameters', () => {
-    // With hFov=10, a star 6 degrees off should be outside FOV
-    const result = projectToCanvas(45, 96, 90, 45, W, H, 10, 10);
+    // With hFov=10, gnomonic clip is pixel-based (±10% screen).
+    // A star 15° off-axis maps far outside the clip window → null.
+    const result = projectToCanvas(45, 105, 90, 45, W, H, 10, 10);
     expect(result).toBeNull();
   });
 });

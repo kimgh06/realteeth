@@ -45,13 +45,13 @@ export function SkyCanvas({ catalog, orientation, dragOffset, lat, lon, onCenter
 
     ctx.clearRect(0, 0, w, h);
 
-    const { alpha, beta } = orientationRef.current;
+    const { azimuth, altitude } = orientationRef.current;
     const now = new Date();
 
     // Gnomonic projection: move camera (not stars) for drag panning.
     // Negate dragOffset so visual drag direction stays the same.
-    const lookAz = alpha - (dragOffset?.az ?? 0);
-    const lookAlt = Math.max(-90, Math.min(90, beta - (dragOffset?.alt ?? 0)));
+    const lookAz = azimuth - (dragOffset?.az ?? 0);
+    const lookAlt = Math.max(-90, Math.min(90, altitude - (dragOffset?.alt ?? 0)));
     const hFov = hFovRef.current;
     const vFov = (2 * Math.atan(Math.tan((hFov / 2) * (Math.PI / 180)) * (h / w))) * (180 / Math.PI);
 

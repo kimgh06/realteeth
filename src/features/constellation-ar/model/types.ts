@@ -19,9 +19,8 @@ export interface CatalogData {
 }
 
 export interface DeviceOrientation {
-  alpha: number;  // compass heading 0-360
-  beta: number;   // tilt up/down
-  gamma: number;  // tilt left/right
+  azimuth: number;  // compass heading 0-360, clockwise from North
+  altitude: number; // elevation -90..90 (0=horizon, 90=zenith)
 }
 
 export type PermissionState = 'idle' | 'requesting' | 'granted' | 'denied' | 'unsupported';

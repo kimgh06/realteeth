@@ -12,18 +12,17 @@ import type { CatalogData } from "@/features/constellation-ar/model/types";
 
 const catalog = catalogData as CatalogData;
 
-function headingLabel(alpha: number): string {
+function headingLabel(azimuth: number): string {
   const dirs = ["북", "북동", "동", "남동", "남", "남서", "서", "북서"];
-  return dirs[Math.round(alpha / 45) % 8]!;
+  return dirs[Math.round(azimuth / 45) % 8]!;
 }
 
 export function ConstellationPage() {
   const navigate = useNavigate();
   const geo = useGeolocation();
   const {
-    alpha,
-    beta,
-    gamma,
+    azimuth,
+    altitude,
     dragOffset,
     onMouseDown,
     onTouchStart,
@@ -71,7 +70,7 @@ export function ConstellationPage() {
           {/* Star canvas overlay */}
           <SkyCanvas
             catalog={catalog}
-            orientation={{ alpha, beta, gamma }}
+            orientation={{ azimuth, altitude }}
             dragOffset={dragOffset}
             lat={lat}
             lon={lon}
@@ -79,7 +78,7 @@ export function ConstellationPage() {
           />
 
           {/* Compass hints (mobile only) */}
-          {!isDesktop && <CompassHints alpha={alpha} />}
+          {!isDesktop && <CompassHints alpha={azimuth} />}
 
           {/* Desktop drag hint */}
           {isDesktop && navigator.maxTouchPoints === 0 && (
@@ -101,7 +100,7 @@ export function ConstellationPage() {
               <span className="text-sm font-semibold text-white drop-shadow">별자리 찾기</span>
               {!isDesktop ? (
                 <span className="text-[11px] text-white/50 tabular-nums">
-                  {headingLabel(alpha)} · {Math.round(alpha)}° · 고도 {Math.round(90 - beta)}°
+                  {headingLabel(azimuth)} · {Math.round(azimuth)}° · 고도 {Math.round(altitude)}°
                 </span>
               ) : (
                 <span className="text-[11px] text-white/50 tabular-nums">
@@ -133,7 +132,7 @@ export function ConstellationPage() {
             >
               <div>ori={orientationPermission}</div>
               <div>desktop={isDesktop ? "Y" : "N"} gate={showPermissionGate ? "Y" : "N"}</div>
-              <div>α={Math.round(alpha)} β={Math.round(beta)} γ={Math.round(gamma)}</div>
+              <div>az={Math.round(azimuth)}° alt={Math.round(altitude)}°</div>
               <div>drag az={Math.round(dragOffset.az)} alt={Math.round(dragOffset.alt)}</div>
               <div>lat={lat.toFixed(2)} lon={lon.toFixed(2)}</div>
               <div>secure={window.isSecureContext ? "Y" : "N"}</div>

@@ -10,14 +10,19 @@ function detectDesktop(): boolean {
   };
   if (typeof DevOrEvent.requestPermission === 'function') return false;
   const uaData = (navigator as Navigator & { userAgentData?: { mobile: boolean } }).userAgentData;
-  if (uaData) return !uaData.mobile;                                    // Chromium UA client hints
-  return navigator.maxTouchPoints === 0;                                // fallback: no touch
+  if (uaData) return !uaData.mobile;
+  return navigator.maxTouchPoints === 0;
 }
 
-interface OrientationState {
-  alpha: number;
-  beta: number;
-  gamma: number;
+// altitude = elevation angle from horizon (0=horizon, 90=zenith)
+// Device beta: 0=flat(screen up), 90=upright(portrait) → altitude = 90 - beta
+function betaToAltitude(beta: number): number {
+  return Math.max(-90, Math.min(90, 90 - beta));
+}
+
+interface RawSmoothed {
+  azimuth: number;
+  beta: number; // raw beta kept for EMA, converted to altitude on output
 }
 
 interface DragState {
@@ -26,7 +31,9 @@ interface DragState {
   onTouchStart: (e: React.TouchEvent) => void;
 }
 
-interface UseDeviceOrientationReturn extends OrientationState, DragState {
+interface UseDeviceOrientationReturn extends DragState {
+  azimuth: number;
+  altitude: number;
   permission: PermissionState;
   requestOrientation: () => Promise<void>;
 }
@@ -35,10 +42,11 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
   const [permission, setPermission] = useState<PermissionState>(
     () => detectDesktop() ? 'unsupported' : 'idle'
   );
-  const [orientation, setOrientation] = useState<OrientationState>({ alpha: 0, beta: 65, gamma: 0 });
+  const [azimuth, setAzimuth] = useState(0);
+  const [altitude, setAltitude] = useState(25); // default: slightly above horizon
   const [dragOffset, setDragOffset] = useState({ az: 0, alt: 0 });
 
-  const smoothedRef = useRef<OrientationState>({ alpha: 0, beta: 65, gamma: 0 });
+  const smoothedRef = useRef<RawSmoothed>({ azimuth: 0, beta: 65 });
   const nullStartRef = useRef<number | null>(null);
   const listeningRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number; az: number; alt: number } | null>(null);
@@ -47,11 +55,11 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
     const webkitHeading = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
     // webkitCompassHeading (iOS): 0=N, clockwise ✓
     // deviceorientationabsolute.alpha (Android): 0=N, counter-clockwise → invert to get compass heading
-    const rawAlpha = webkitHeading != null
+    const rawAzimuth = webkitHeading != null
       ? webkitHeading
       : (360 - (e.alpha ?? 0)) % 360;
 
-    if (rawAlpha === null) {
+    if (e.alpha === null && webkitHeading == null) {
       if (nullStartRef.current === null) {
         nullStartRef.current = Date.now();
       } else if (Date.now() - nullStartRef.current > 2000) {
@@ -63,22 +71,21 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
 
     nullStartRef.current = null;
 
-    const beta = e.beta ?? 45;
-    const gamma = e.gamma ?? 0;
-
+    const beta = e.beta ?? 65;
     const prev = smoothedRef.current;
-    // EMA for beta and gamma (simple)
+
+    // EMA for beta
     const smoothBeta = prev.beta + EMA_FACTOR * (beta - prev.beta);
-    const smoothGamma = prev.gamma + EMA_FACTOR * (gamma - prev.gamma);
 
-    // EMA for alpha (compass) — must handle wrap-around
-    let dAlpha = rawAlpha - prev.alpha;
-    if (dAlpha > 180) dAlpha -= 360;
-    if (dAlpha < -180) dAlpha += 360;
-    const smoothAlpha = (prev.alpha + EMA_FACTOR * dAlpha + 360) % 360;
+    // EMA for azimuth — must handle wrap-around
+    let dAz = rawAzimuth - prev.azimuth;
+    if (dAz > 180) dAz -= 360;
+    if (dAz < -180) dAz += 360;
+    const smoothAzimuth = (prev.azimuth + EMA_FACTOR * dAz + 360) % 360;
 
-    smoothedRef.current = { alpha: smoothAlpha, beta: smoothBeta, gamma: smoothGamma };
-    setOrientation({ alpha: smoothAlpha, beta: smoothBeta, gamma: smoothGamma });
+    smoothedRef.current = { azimuth: smoothAzimuth, beta: smoothBeta };
+    setAzimuth(smoothAzimuth);
+    setAltitude(betaToAltitude(smoothBeta));
   }, []);
 
   const requestOrientation = useCallback(async () => {
@@ -114,7 +121,6 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
       }
     } else if ('DeviceOrientationEvent' in window) {
       // Android Chrome: prefer deviceorientationabsolute (absolute north-referenced heading)
-      // deviceorientation.alpha is relative to page-open direction on Android — not usable for AR
       setPermission('granted');
       listeningRef.current = true;
       const supportsAbsolute = typeof (window as unknown as Record<string, unknown>)['ondeviceorientationabsolute'] !== 'undefined';
@@ -123,14 +129,12 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
       } else {
         window.addEventListener('deviceorientation', handleOrientation);
       }
-      // Schedule unsupported check after 2s if alpha stays null
       nullStartRef.current = Date.now();
     } else {
       setPermission('unsupported');
     }
   }, [handleOrientation]);
 
-  // Desktop drag panning
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     dragStartRef.current = {
       x: e.clientX,
@@ -201,9 +205,8 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
   }, [handleOrientation]);
 
   return {
-    alpha: orientation.alpha,
-    beta: orientation.beta,
-    gamma: orientation.gamma,
+    azimuth,
+    altitude,
     permission,
     requestOrientation,
     dragOffset,

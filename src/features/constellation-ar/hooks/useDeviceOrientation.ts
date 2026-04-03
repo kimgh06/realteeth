@@ -15,9 +15,10 @@ function detectDesktop(): boolean {
 }
 
 // altitude = elevation angle from horizon (0=horizon, 90=zenith)
-// Device beta: 0=flat(screen up), 90=upright(portrait) → altitude = 90 - beta
+// Device beta: 90=upright(portrait). Tilting top toward user → beta→180 = looking up
+// altitude = beta - 90
 function betaToAltitude(beta: number): number {
-  return Math.max(-90, Math.min(90, 90 - beta));
+  return Math.max(-90, Math.min(90, beta - 90));
 }
 
 interface RawSmoothed {

@@ -8,8 +8,8 @@ interface Props {
 }
 
 export function PermissionGate({ cameraPermission, orientationPermission, onRequest }: Props) {
-  const isUnsupported =
-    cameraPermission === "unsupported" || orientationPermission === "unsupported";
+  const isUnsupported = cameraPermission === "unsupported";
+  const isOrientationOnly = orientationPermission === "unsupported" && cameraPermission !== "unsupported";
   const isCameraDenied = cameraPermission === "denied";
   const isOrientationDenied = orientationPermission === "denied";
   const isRequesting =
@@ -63,13 +63,20 @@ export function PermissionGate({ cameraPermission, orientationPermission, onRequ
       )}
 
       {!isCameraDenied && !isOrientationDenied && (
-        <button
-          onClick={onRequest}
-          disabled={isRequesting}
-          className="rounded-2xl bg-sky-500 px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-sky-400 disabled:opacity-50"
-        >
-          {isRequesting ? "권한 요청 중…" : "시작하기"}
-        </button>
+        <>
+          {isOrientationOnly && (
+            <div className="mb-4 rounded-xl bg-sky-500/10 px-4 py-3 text-left">
+              <p className="text-sm text-sky-300">나침반이 없는 기기입니다. 마우스로 하늘을 탐색할 수 있어요.</p>
+            </div>
+          )}
+          <button
+            onClick={onRequest}
+            disabled={isRequesting}
+            className="rounded-2xl bg-sky-500 px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-sky-400 disabled:opacity-50"
+          >
+            {isRequesting ? "권한 요청 중…" : isOrientationOnly ? "카메라로 시작하기" : "시작하기"}
+          </button>
+        </>
       )}
 
       <p className="mt-6 text-xs text-white/25">

@@ -21,6 +21,8 @@ export function ConstellationPage() {
     alpha,
     beta,
     gamma,
+    dragOffset,
+    onMouseDown,
     permission: orientationPermission,
     requestOrientation,
   } = useDeviceOrientation();
@@ -52,12 +54,14 @@ export function ConstellationPage() {
   const lon = geo.lon ?? 126.978;
 
   const showPermissionGate =
-    cameraPermission !== "granted" || orientationPermission !== "granted";
+    cameraPermission !== "granted" ||
+    (orientationPermission !== "granted" && orientationPermission !== "unsupported");
 
   return (
     <div
       className="fixed inset-0 overflow-hidden bg-[#0d1b2a]"
       style={{ touchAction: "none" }}
+      onMouseDown={onMouseDown}
     >
       {showPermissionGate ? (
         <PermissionGate
@@ -80,6 +84,7 @@ export function ConstellationPage() {
           <SkyCanvas
             catalog={catalog}
             orientation={{ alpha, beta, gamma }}
+            dragOffset={dragOffset}
             lat={lat}
             lon={lon}
             onCenterConstellation={setCenterConstellation}
@@ -87,6 +92,12 @@ export function ConstellationPage() {
 
           {/* Compass hints */}
           <CompassHints alpha={alpha} />
+
+          {orientationPermission === "unsupported" && (
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/30 px-3 py-1 text-xs text-white/50 backdrop-blur-sm">
+              마우스로 드래그하여 탐색
+            </div>
+          )}
 
           {/* Top bar */}
           <div className="absolute left-0 right-0 top-0 flex items-center justify-between px-4 py-4">

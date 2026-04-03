@@ -6,6 +6,7 @@ import type { CatalogData, DeviceOrientation } from "../model/types";
 interface Props {
   catalog: CatalogData;
   orientation: DeviceOrientation;
+  dragOffset?: { az: number; alt: number };
   lat: number;
   lon: number;
   onCenterConstellation: (name: string | null) => void;
@@ -13,7 +14,7 @@ interface Props {
 
 const MAG_LIMIT = 3.5;
 
-export function SkyCanvas({ catalog, orientation, lat, lon, onCenterConstellation }: Props) {
+export function SkyCanvas({ catalog, orientation, dragOffset, lat, lon, onCenterConstellation }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const lastCenterUpdateRef = useRef<number>(0);
@@ -46,7 +47,9 @@ export function SkyCanvas({ catalog, orientation, lat, lon, onCenterConstellatio
     const starPositions: ({ x: number; y: number } | null)[] = catalog.stars.map((star) => {
       if (star.mag > MAG_LIMIT) return null;
       const { alt, az } = getAltAz(star.ra, star.dec, lat, lon, now);
-      return projectToCanvas(alt, az, alpha, beta, w, h);
+      const effectiveAz = az + (dragOffset?.az ?? 0);
+      const effectiveAlt = alt + (dragOffset?.alt ?? 0);
+      return projectToCanvas(effectiveAlt, effectiveAz, alpha, beta, w, h);
     });
 
     // Draw constellation lines first (behind stars)
@@ -122,7 +125,7 @@ export function SkyCanvas({ catalog, orientation, lat, lon, onCenterConstellatio
     }
 
     rafRef.current = requestAnimationFrame(draw);
-  }, [catalog, lat, lon, onCenterConstellation]);
+  }, [catalog, lat, lon, onCenterConstellation, dragOffset]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(draw);

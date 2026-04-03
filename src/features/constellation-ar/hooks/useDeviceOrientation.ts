@@ -86,10 +86,16 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
         setPermission('denied');
       }
     } else if ('DeviceOrientationEvent' in window) {
-      // Android / Desktop with sensor
+      // Android Chrome: prefer deviceorientationabsolute (absolute north-referenced heading)
+      // deviceorientation.alpha is relative to page-open direction on Android — not usable for AR
       setPermission('granted');
       listeningRef.current = true;
-      window.addEventListener('deviceorientation', handleOrientation);
+      const supportsAbsolute = typeof (window as unknown as Record<string, unknown>)['ondeviceorientationabsolute'] !== 'undefined';
+      if (supportsAbsolute) {
+        window.addEventListener('deviceorientationabsolute' as 'deviceorientation', handleOrientation);
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
       // Schedule unsupported check after 2s if alpha stays null
       nullStartRef.current = Date.now();
     } else {
@@ -129,6 +135,7 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
   useEffect(() => {
     return () => {
       if (listeningRef.current) {
+        window.removeEventListener('deviceorientationabsolute' as 'deviceorientation', handleOrientation);
         window.removeEventListener('deviceorientation', handleOrientation);
       }
     };

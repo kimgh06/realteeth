@@ -33,29 +33,40 @@ export function ConstellationPage() {
   const localHour = new Date().getHours();
   const isDaytime = localHour >= 6 && localHour < 19;
 
+  // Auto-detect desktop: try orientation immediately on mount
+  // If no gyroscope, orientationPermission becomes 'unsupported'
+  useEffect(() => {
+    requestOrientation();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Desktop = no compass available
+  const isDesktop = orientationPermission === "unsupported";
+
   const requestAll = async () => {
+    if (isDesktop) return; // desktop: no permissions needed
     await requestCamera();
     await requestOrientation();
   };
 
-  // Lock portrait orientation (optional, fails silently on unsupported browsers)
+  // Lock portrait orientation (fails silently on desktop)
   useEffect(() => {
-    const orientation = screen.orientation as ScreenOrientation & {
-      lock?: (orientation: string) => Promise<void>;
+    const ori = screen.orientation as ScreenOrientation & {
+      lock?: (o: string) => Promise<void>;
       unlock?: () => void;
     };
-    orientation.lock?.("portrait").catch(() => {});
-    return () => {
-      orientation.unlock?.();
-    };
+    ori.lock?.("portrait").catch(() => {});
+    return () => ori.unlock?.();
   }, []);
 
   const lat = geo.lat ?? 37.5665;
   const lon = geo.lon ?? 126.978;
 
+  // Desktop: skip permission gate entirely, go straight to star map
+  // Mobile: need camera + orientation granted
   const showPermissionGate =
-    cameraPermission !== "granted" ||
-    (orientationPermission !== "granted" && orientationPermission !== "unsupported");
+    !isDesktop &&
+    (cameraPermission !== "granted" || orientationPermission !== "granted");
 
   return (
     <div
@@ -71,14 +82,16 @@ export function ConstellationPage() {
         />
       ) : (
         <>
-          {/* Camera feed */}
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          {/* Camera feed — mobile only */}
+          {!isDesktop && (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
 
           {/* Star canvas overlay */}
           <SkyCanvas
@@ -90,10 +103,11 @@ export function ConstellationPage() {
             onCenterConstellation={setCenterConstellation}
           />
 
-          {/* Compass hints */}
-          <CompassHints alpha={alpha} />
+          {/* Compass hints (mobile only) */}
+          {!isDesktop && <CompassHints alpha={alpha} />}
 
-          {orientationPermission === "unsupported" && (
+          {/* Desktop drag hint */}
+          {isDesktop && (
             <div className="absolute top-20 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/30 px-3 py-1 text-xs text-white/50 backdrop-blur-sm">
               마우스로 드래그하여 탐색
             </div>

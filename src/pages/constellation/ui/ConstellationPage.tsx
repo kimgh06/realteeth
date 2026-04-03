@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { useGeolocation } from "@/features/detect-location/model/useGeolocation";
-import { useCamera } from "@/features/constellation-ar/hooks/useCamera";
 import { useDeviceOrientation } from "@/features/constellation-ar/hooks/useDeviceOrientation";
 import { PermissionGate } from "@/features/constellation-ar/ui/PermissionGate";
 import { SkyCanvas } from "@/features/constellation-ar/ui/SkyCanvas";
@@ -21,7 +20,6 @@ function headingLabel(alpha: number): string {
 export function ConstellationPage() {
   const navigate = useNavigate();
   const geo = useGeolocation();
-  const { videoRef, permission: cameraPermission, requestCamera } = useCamera();
   const {
     alpha,
     beta,
@@ -40,11 +38,6 @@ export function ConstellationPage() {
   const localHour = new Date().getHours();
   const isDaytime = localHour >= 6 && localHour < 19;
 
-  const requestAll = async () => {
-    await requestCamera();
-    await requestOrientation();
-  };
-
   // Lock portrait orientation (fails silently on desktop)
   useEffect(() => {
     const ori = screen.orientation as ScreenOrientation & {
@@ -58,20 +51,8 @@ export function ConstellationPage() {
   const lat = geo.lat ?? 37.5665;
   const lon = geo.lon ?? 126.978;
 
-  const noCamera = cameraPermission === "unsupported";
-  const isDesktop = orientationPermission === "unsupported" || noCamera;
-
-  // Auto-request orientation when camera is unavailable (HTTP fallback)
-  useEffect(() => {
-    if (noCamera && !isDesktop && orientationPermission === "idle") {
-      requestOrientation();
-    }
-  }, [noCamera, isDesktop, orientationPermission, requestOrientation]);
-
-  const showPermissionGate =
-    !isDesktop &&
-    !noCamera &&
-    (cameraPermission !== "granted" || orientationPermission !== "granted");
+  const isDesktop = orientationPermission === "unsupported";
+  const showPermissionGate = !isDesktop && orientationPermission !== "granted";
 
   return (
     <div
@@ -82,23 +63,11 @@ export function ConstellationPage() {
     >
       {showPermissionGate ? (
         <PermissionGate
-          cameraPermission={cameraPermission}
           orientationPermission={orientationPermission}
-          onRequest={requestAll}
+          onRequest={requestOrientation}
         />
       ) : (
         <>
-          {/* Camera feed — mobile only, skipped when unavailable (HTTP) */}
-          {!isDesktop && !noCamera && (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          )}
-
           {/* Star canvas overlay */}
           <SkyCanvas
             catalog={catalog}
@@ -162,7 +131,7 @@ export function ConstellationPage() {
               onClick={() => setShowDebug(false)}
               className="absolute right-2 bottom-20 z-50 rounded bg-white/10 px-2 py-1 text-[10px] text-white/60"
             >
-              <div>cam={cameraPermission} ori={orientationPermission}</div>
+              <div>ori={orientationPermission}</div>
               <div>desktop={isDesktop ? "Y" : "N"} gate={showPermissionGate ? "Y" : "N"}</div>
               <div>α={Math.round(alpha)} β={Math.round(beta)} γ={Math.round(gamma)}</div>
               <div>drag az={Math.round(dragOffset.az)} alt={Math.round(dragOffset.alt)}</div>

@@ -2,17 +2,13 @@ import { Telescope } from "lucide-react";
 import type { PermissionState } from "../model/types";
 
 interface Props {
-  cameraPermission: PermissionState;
   orientationPermission: PermissionState;
   onRequest: () => void;
 }
 
-export function PermissionGate({ cameraPermission, orientationPermission, onRequest }: Props) {
-  const isUnsupported = cameraPermission === "unsupported";
-  const isCameraDenied = cameraPermission === "denied";
+export function PermissionGate({ orientationPermission, onRequest }: Props) {
   const isOrientationDenied = orientationPermission === "denied";
-  const isRequesting =
-    cameraPermission === "requesting" || orientationPermission === "requesting";
+  const isRequesting = orientationPermission === "requesting";
 
   if (!window.isSecureContext) {
     return (
@@ -20,16 +16,6 @@ export function PermissionGate({ cameraPermission, orientationPermission, onRequ
         <Telescope className="mb-6 h-16 w-16 text-white/30" />
         <h1 className="mb-2 text-xl font-semibold text-white">별자리 찾기</h1>
         <p className="text-sm text-white/50">HTTPS 환경에서만 사용할 수 있습니다</p>
-      </div>
-    );
-  }
-
-  if (isUnsupported) {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0d1b2a] px-8 text-center">
-        <Telescope className="mb-6 h-16 w-16 text-white/30" />
-        <h1 className="mb-2 text-xl font-semibold text-white">별자리 찾기</h1>
-        <p className="text-sm text-white/50">이 기기에서는 지원하지 않습니다</p>
       </div>
     );
   }
@@ -45,14 +31,6 @@ export function PermissionGate({ cameraPermission, orientationPermission, onRequ
         기기 방향 권한이 필요합니다
       </p>
 
-      {isCameraDenied && (
-        <div className="mb-4 rounded-xl bg-red-500/15 px-4 py-3 text-left">
-          <p className="text-sm text-red-300">
-            설정 &gt; Safari &gt; 카메라 권한을 허용해주세요
-          </p>
-        </div>
-      )}
-
       {isOrientationDenied && (
         <div className="mb-4 rounded-xl bg-amber-500/15 px-4 py-3 text-left">
           <p className="text-sm text-amber-300">
@@ -61,7 +39,7 @@ export function PermissionGate({ cameraPermission, orientationPermission, onRequ
         </div>
       )}
 
-      {!isCameraDenied && !isOrientationDenied && (
+      {!isOrientationDenied && (
         <button
           onClick={onRequest}
           disabled={isRequesting}

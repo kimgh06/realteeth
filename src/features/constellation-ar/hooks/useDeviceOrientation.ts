@@ -44,8 +44,12 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
   const dragStartRef = useRef<{ x: number; y: number; az: number; alt: number } | null>(null);
 
   const handleOrientation = useCallback((e: DeviceOrientationEvent) => {
-    const rawAlpha = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading
-      ?? e.alpha;
+    const webkitHeading = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
+    // webkitCompassHeading (iOS): 0=N, clockwise ✓
+    // deviceorientationabsolute.alpha (Android): 0=N, counter-clockwise → invert to get compass heading
+    const rawAlpha = webkitHeading != null
+      ? webkitHeading
+      : (360 - (e.alpha ?? 0)) % 360;
 
     if (rawAlpha === null) {
       if (nullStartRef.current === null) {

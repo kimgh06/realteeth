@@ -3,6 +3,17 @@ import type { PermissionState } from '../model/types';
 
 const EMA_FACTOR = 0.15;
 
+function detectDesktop(): boolean {
+  if (!('DeviceOrientationEvent' in window)) return true;
+  const DevOrEvent = window.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+    requestPermission?: () => Promise<string>;
+  };
+  if (typeof DevOrEvent.requestPermission === 'function') return false;
+  const uaData = (navigator as Navigator & { userAgentData?: { mobile: boolean } }).userAgentData;
+  if (uaData) return !uaData.mobile;                                    // Chromium UA client hints
+  return navigator.maxTouchPoints === 0;                                // fallback: no touch
+}
+
 interface OrientationState {
   alpha: number;
   beta: number;
@@ -12,6 +23,7 @@ interface OrientationState {
 interface DragState {
   dragOffset: { az: number; alt: number };
   onMouseDown: (e: React.MouseEvent) => void;
+  onTouchStart: (e: React.TouchEvent) => void;
 }
 
 interface UseDeviceOrientationReturn extends OrientationState, DragState {
@@ -20,11 +32,13 @@ interface UseDeviceOrientationReturn extends OrientationState, DragState {
 }
 
 export function useDeviceOrientation(): UseDeviceOrientationReturn {
-  const [permission, setPermission] = useState<PermissionState>('idle');
-  const [orientation, setOrientation] = useState<OrientationState>({ alpha: 0, beta: 45, gamma: 0 });
+  const [permission, setPermission] = useState<PermissionState>(
+    () => detectDesktop() ? 'unsupported' : 'idle'
+  );
+  const [orientation, setOrientation] = useState<OrientationState>({ alpha: 0, beta: 65, gamma: 0 });
   const [dragOffset, setDragOffset] = useState({ az: 0, alt: 0 });
 
-  const smoothedRef = useRef<OrientationState>({ alpha: 0, beta: 45, gamma: 0 });
+  const smoothedRef = useRef<OrientationState>({ alpha: 0, beta: 65, gamma: 0 });
   const nullStartRef = useRef<number | null>(null);
   const listeningRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number; az: number; alt: number } | null>(null);
@@ -66,12 +80,21 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
   const requestOrientation = useCallback(async () => {
     if (listeningRef.current) return;
 
-    const DevOrEvent = DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+    if (!('DeviceOrientationEvent' in window)) {
+      setPermission('unsupported');
+      return;
+    }
+
+    const DevOrEvent = window.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
       requestPermission?: () => Promise<string>;
     };
 
     if (typeof DevOrEvent.requestPermission === 'function') {
       // iOS 13+
+      if (!window.isSecureContext) {
+        setPermission('unsupported');
+        return;
+      }
       setPermission('requesting');
       try {
         const result = await DevOrEvent.requestPermission();
@@ -132,6 +155,38 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
     window.addEventListener('mouseup', onMouseUp);
   }, [dragOffset]);
 
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    dragStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      az: dragOffset.az,
+      alt: dragOffset.alt,
+    };
+
+    const onTouchMove = (ev: TouchEvent) => {
+      if (!dragStartRef.current) return;
+      const t = ev.touches[0];
+      if (!t) return;
+      const dx = t.clientX - dragStartRef.current.x;
+      const dy = t.clientY - dragStartRef.current.y;
+      setDragOffset({
+        az: dragStartRef.current.az + dx * 0.2,
+        alt: dragStartRef.current.alt - dy * 0.2,
+      });
+    };
+
+    const onTouchEnd = () => {
+      dragStartRef.current = null;
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd);
+  }, [dragOffset]);
+
   useEffect(() => {
     return () => {
       if (listeningRef.current) {
@@ -149,5 +204,6 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
     requestOrientation,
     dragOffset,
     onMouseDown,
+    onTouchStart,
   };
 }

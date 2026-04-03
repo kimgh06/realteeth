@@ -18,21 +18,6 @@ export interface CatalogData {
   constellations: Constellation[];
 }
 
-export interface VisibleStar {
-  x: number;
-  y: number;
-  mag: number;
-  name?: string;
-}
-
-export interface VisibleConstellation {
-  id: string;
-  nameKo: string;
-  lines: [{ x1: number; y1: number; x2: number; y2: number }];
-  centerX: number;
-  centerY: number;
-}
-
 export interface DeviceOrientation {
   alpha: number;  // compass heading 0-360
   beta: number;   // tilt up/down

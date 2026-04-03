@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      host: '0.0.0.0',
       proxy: {
         "/api/owm": {
           target: "https://api.openweathermap.org",

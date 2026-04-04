@@ -1,10 +1,13 @@
-import { Component, type ReactNode } from "react";
+import { Suspense, lazy, Component, type ReactNode } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { HomePage } from "@/pages/home";
 import { DetailPage } from "@/pages/detail";
 import { FavoritesPage } from "@/pages/favorites";
+import { TestPage } from "@/pages/test";
 import { Layout } from "@/shared/ui/Layout";
-import { ConstellationPage } from "@/pages/constellation";
+const ConstellationPage = lazy(() =>
+  import("@/pages/constellation").then((m) => ({ default: m.ConstellationPage })),
+);
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -37,10 +40,13 @@ export function AppRouter() {
         path="/constellation"
         element={
           <ErrorBoundary>
-            <ConstellationPage />
+            <Suspense fallback={<div className="min-h-screen bg-[#0d1b2a] flex items-center justify-center text-white/50">로딩 중...</div>}>
+              <ConstellationPage />
+            </Suspense>
           </ErrorBoundary>
         }
       />
+      <Route path="/test" element={<TestPage />} />
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/detail" element={<DetailPage />} />

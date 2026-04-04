@@ -104,7 +104,7 @@ export function ConstellationPage() {
                 </span>
               ) : (
                 <span className="text-[11px] text-white/50 tabular-nums">
-                  {headingLabel((dragOffset.az % 360 + 360) % 360)} · 고도 {Math.round(Math.max(-90, Math.min(90, dragOffset.alt)))}°
+                  {headingLabel((dragOffset.az % 360 + 360) % 360)} · 고도 {Math.round(Math.max(-90, Math.min(90, altitude - dragOffset.alt)))}°
                 </span>
               )}
             </div>

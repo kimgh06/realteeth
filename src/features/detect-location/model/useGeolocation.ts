@@ -19,12 +19,11 @@ export function useGeolocation() {
     lon: DEFAULT_LON,
     name: DEFAULT_NAME,
     error: null,
-    loading: true,
+    loading: false,
   });
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setState((s) => ({ ...s, loading: false }));
       return;
     }
 
@@ -41,9 +40,7 @@ export function useGeolocation() {
           loading: false,
         });
       },
-      () => {
-        setState((s) => ({ ...s, loading: false }));
-      },
+      () => {},
       { enableHighAccuracy: false, timeout: 5000 },
     );
   }, []);

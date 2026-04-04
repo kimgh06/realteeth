@@ -182,7 +182,7 @@ export function HomePage() {
       <div className="mx-auto max-w-lg px-4 pb-8">
         <WeatherDisplay
           data={data}
-          isLoading={isLoading || geo.loading}
+          isLoading={isLoading}
           error={error}
           locationName={displayName}
           onRetry={handleRefresh}

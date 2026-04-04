@@ -25,6 +25,7 @@ export function mockWeatherData(name?: string): WeatherData {
       icon: i < 4 ? "01d" : "02n",
       description: i < 4 ? "맑음" : "구름 조금",
       pop: i < 3 ? 0 : Math.round(Math.random() * 50),
+      rain: i === 5 ? 2.4 : i === 6 ? 5.1 : undefined,
     })),
     daily: Array.from({ length: 5 }, (_, i) => {
       const d = new Date();
@@ -38,6 +39,7 @@ export function mockWeatherData(name?: string): WeatherData {
         icon: ["01d", "02d", "03d", "10d", "01d"][i]!,
         description: ["맑음", "구름 조금", "흐림", "비", "맑음"][i]!,
         pop: [0, 10, 30, 80, 5][i]!,
+        rain: i === 3 ? 12.5 : undefined,
       };
     }),
     timezoneOffset: 32400, // KST (UTC+9)

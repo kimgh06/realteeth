@@ -47,7 +47,7 @@ function deriveDailyForecast(
 
   const grouped = new Map<
     string,
-    { temps_min: number[]; temps_max: number[]; icons: string[]; descs: string[]; pops: number[]; dayOfWeek: number }
+    { temps_min: number[]; temps_max: number[]; icons: string[]; descs: string[]; pops: number[]; rains: number[]; dayOfWeek: number }
   >();
 
   for (const item of forecast.list) {
@@ -56,7 +56,7 @@ function deriveDailyForecast(
 
     if (!grouped.has(key)) {
       const d = toLocalDate(item.dt, timezoneOffset);
-      grouped.set(key, { temps_min: [], temps_max: [], icons: [], descs: [], pops: [], dayOfWeek: d.getUTCDay() });
+      grouped.set(key, { temps_min: [], temps_max: [], icons: [], descs: [], pops: [], rains: [], dayOfWeek: d.getUTCDay() });
     }
     const g = grouped.get(key)!;
     g.temps_min.push(item.main.temp_min);
@@ -64,6 +64,7 @@ function deriveDailyForecast(
     g.icons.push(item.weather[0]?.icon ?? "01d");
     g.descs.push(item.weather[0] ? getWeatherDescription(item.weather[0].id) : "");
     g.pops.push(item.pop);
+    if (item.rain?.["3h"]) g.rains.push(item.rain["3h"]);
   }
 
   const result: DailyForecast[] = [];
@@ -81,6 +82,7 @@ function deriveDailyForecast(
       icon,
       description: desc,
       pop: Math.round(Math.max(...g.pops) * 100),
+      rain: g.rains.length > 0 ? Math.max(...g.rains) : undefined,
     });
   }
 
@@ -136,6 +138,7 @@ async function getWeatherData(
       icon: item.weather[0]?.icon ?? "01d",
       description: item.weather[0] ? getWeatherDescription(item.weather[0].id) : "",
       pop: Math.round(item.pop * 100),
+      rain: item.rain?.["3h"],
     })),
     daily: deriveDailyForecast(forecast, timezoneOffset),
     timezoneOffset,
@@ -152,6 +155,7 @@ export function useWeather(
     queryFn: () => getWeatherData(lat!, lon!, name),
     enabled: lat !== null && lon !== null,
     refetchInterval: 5 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 }
 

@@ -22,6 +22,7 @@ export interface HourlyForecast {
   icon: string;
   description: string;
   pop?: number;
+  rain?: number;
 }
 
 export interface DailyForecast {
@@ -32,6 +33,7 @@ export interface DailyForecast {
   icon: string;
   description: string;
   pop: number;
+  rain?: number;
 }
 
 export interface WeatherData {
@@ -69,5 +71,6 @@ export interface OWMForecastResponse {
     };
     weather: { id: number; description: string; icon: string }[];
     pop: number;
+    rain?: { "3h"?: number };
   }[];
 }

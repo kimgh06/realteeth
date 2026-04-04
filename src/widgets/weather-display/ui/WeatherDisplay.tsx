@@ -142,6 +142,9 @@ export function WeatherDisplay({ data, isLoading, error, locationName, onRetry, 
                 {h.pop != null && h.pop > 0 && (
                   <span className="text-xs text-sky-300">{h.pop}%</span>
                 )}
+                {h.rain != null && h.rain > 0 && (
+                  <span className="text-[10px] text-blue-200/80">{h.rain.toFixed(1)}mm</span>
+                )}
               </div>
             );
           })}
@@ -179,6 +182,10 @@ export function WeatherDisplay({ data, isLoading, error, locationName, onRetry, 
                     <span className="w-8 shrink-0 text-xs text-sky-300">{d.pop}%</span>
                   )}
                   {d.pop === 0 && <span className="w-8 shrink-0" />}
+                  {d.rain != null && d.rain > 0 && (
+                    <span className="w-10 shrink-0 text-[10px] text-blue-200/80">{d.rain.toFixed(1)}mm</span>
+                  )}
+                  {d.rain == null || d.rain === 0 ? <span className="w-10 shrink-0" /> : null}
                   <span className="w-8 shrink-0 text-right text-sm text-white/70">
                     {convert(d.tempMin)}°{unit}
                   </span>
